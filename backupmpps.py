@@ -33,8 +33,8 @@ import urllib3.exceptions
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-REQUEST_TIMEOUT = 60
-COMPRESS_TIMEOUT = 30
+REQUEST_TIMEOUT = 60 * 2
+COMPRESS_TIMEOUT = 60 * 2
 
 
 class ExtraviadosMxApiException(Exception):
