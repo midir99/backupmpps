@@ -16,7 +16,6 @@ Example
 import argparse
 import dataclasses
 import datetime
-import functools
 import logging
 import os
 import os.path
@@ -399,12 +398,14 @@ def backup_mpps(mpps: list[Mpp], s3client, bucket: str):
     logging.info("%d were retrieved, starting the backup", len(mpps))
     with tempfile.TemporaryDirectory() as tmpdirname:
         logging.info("created temporary directory %s", tmpdirname)
-        for mpp in mpps:
-            logging.info("processing %s", mpp.mp_name)
+        total_mpps = len(mpps)
+        for i, mpp in enumerate(mpps):
+            logging.info("processing %s", mpp.mp_name.upper())
             post_filename = f"{tmpdirname}/{mpp.id}.po_post_url"
             _process_url(mpp.po_post_url, post_filename, s3client, bucket)
             poster_filename = f"{tmpdirname}/{mpp.id}.po_poster_url"
             _process_url(mpp.po_poster_url, poster_filename, s3client, bucket)
+            logging.info("PROGRESS [ %s / %s ]", i + 1, total_mpps)
 
 
 @dataclasses.dataclass
