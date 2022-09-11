@@ -400,11 +400,17 @@ def backup_mpps(mpps: list[Mpp], s3client, bucket: str):
         logging.info("created temporary directory %s", tmpdirname)
         total_mpps = len(mpps)
         for i, mpp in enumerate(mpps):
-            logging.info("processing %s", mpp.mp_name.upper())
-            post_filename = f"{tmpdirname}/{mpp.id}.po_post_url"
-            _process_url(mpp.po_post_url, post_filename, s3client, bucket)
-            poster_filename = f"{tmpdirname}/{mpp.id}.po_poster_url"
-            _process_url(mpp.po_poster_url, poster_filename, s3client, bucket)
+            try:
+                logging.info("processing %s", mpp.mp_name.upper())
+                post_filename = f"{tmpdirname}/{mpp.id}.po_post_url"
+                _process_url(mpp.po_post_url, post_filename, s3client, bucket)
+                poster_filename = f"{tmpdirname}/{mpp.id}.po_poster_url"
+                _process_url(mpp.po_poster_url, poster_filename, s3client, bucket)
+            except Exception:
+                logging.exception(
+                    "an unhandled error happened when processing %s",
+                    mpp.mp_name.upper(),
+                )
             logging.info("PROGRESS [ %s / %s ]", i + 1, total_mpps)
 
 
@@ -516,11 +522,11 @@ def main():
     config_logging(program_args.logfile)
     aws_access_key_id = os.getenv("AWS_ACCESS_KEY_ID")
     if aws_access_key_id is None:
-        logging.error("No AWS_ACCESS_KEY_ID environment variable found")
+        logging.error("no AWS_ACCESS_KEY_ID environment variable found")
         sys.exit(1)
     aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
     if aws_secret_access_key is None:
-        logging.error("No AWS_SECRET_ACCESS_KEY environment variable found")
+        logging.error("no AWS_SECRET_ACCESS_KEY environment variable found")
         sys.exit(1)
     s3client = boto3.client(
         "s3",
