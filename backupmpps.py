@@ -34,6 +34,7 @@ import urllib3.exceptions
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 REQUEST_TIMEOUT = 60
+COMPRESS_TIMEOUT = 30
 
 
 class ExtraviadosMxApiException(Exception):
@@ -264,14 +265,14 @@ def compress_pdf(filename: str) -> str:
         f"-sOutputFile={tmp_filename}",
         filename,
     ]
-    subprocess.run(gs_args, capture_output=True, check=True, timeout=10)
+    subprocess.run(gs_args, capture_output=True, check=True, timeout=COMPRESS_TIMEOUT)
     mv_args = [
         "mv",
         "--force",
         tmp_filename,
         filename,
     ]
-    subprocess.run(mv_args, capture_output=True, check=True, timeout=10)
+    subprocess.run(mv_args, capture_output=True, check=True, timeout=COMPRESS_TIMEOUT)
     return filename
 
 
@@ -290,7 +291,7 @@ def compress_png(filename: str) -> str:
     """
     args = ["pngcrush", "-brute", "-ow", filename]
     completed_process = subprocess.run(
-        args, capture_output=True, check=True, timeout=10, text=True
+        args, capture_output=True, check=True, timeout=COMPRESS_TIMEOUT, text=True
     )
     if "Not a PNG file" in completed_process.stderr:
         raise ValueError("Not a PNG file")
@@ -307,7 +308,9 @@ def compress_jpeg(filename: str) -> str:
     """
     args = ["jpegoptim", "-v", filename]
     try:
-        subprocess.run(args, capture_output=True, check=True, timeout=10, text=True)
+        subprocess.run(
+            args, capture_output=True, check=True, timeout=COMPRESS_TIMEOUT, text=True
+        )
     except subprocess.CalledProcessError as ex:
         if "Not a JPEG file" in (ex.output or ""):
             raise ValueError("Not a JPEG file") from ex
@@ -374,8 +377,11 @@ def _process_url(url: str, filename: str, s3client, bucket_name: str):
     except Exception:
         logging.exception("error while downloading %s", url)
         return
-    logging.info("trying to compress %s", final_filename)
-    final_filename = _compress_file(final_filename)
+    try:
+        logging.info("trying to compress %s", final_filename)
+        final_filename = _compress_file(final_filename)
+    except Exception:
+        logging.exception("error while compressing %s", final_filename)
     try:
         logging.info("uploading %s to bucket %s ", final_filename, bucket_name)
         s3client.upload_file(
@@ -386,13 +392,11 @@ def _process_url(url: str, filename: str, s3client, bucket_name: str):
         )
     except Exception:
         logging.exception("error while uploading %s to S3 bucket", final_filename)
-        return
     try:
         logging.info("deleting %s", final_filename)
         os.remove(final_filename)
     except Exception:
         logging.exception("error while deleting file %s", final_filename)
-        return
 
 
 def backup_mpps(mpps: list[Mpp], s3client, bucket: str):
