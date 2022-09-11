@@ -386,6 +386,13 @@ def _process_url(url: str, filename: str, s3client, bucket_name: str):
         )
     except Exception:
         logging.exception("error while uploading %s to S3 bucket", final_filename)
+        return
+    try:
+        logging.info("deleting %s", final_filename)
+        os.remove(final_filename)
+    except Exception:
+        logging.exception("error while deleting file %s", final_filename)
+        return
 
 
 def backup_mpps(mpps: list[Mpp], s3client, bucket: str):
