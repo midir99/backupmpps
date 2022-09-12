@@ -1,6 +1,6 @@
 # backupmpps
 
-Python script to back up missing person posters data (po_post_url and po_poster_url) in
+Python script to back up missing person posters data (`po_post_url` and `po_poster_url`) in
 a S3 bucket.
 
 ## Requirements
